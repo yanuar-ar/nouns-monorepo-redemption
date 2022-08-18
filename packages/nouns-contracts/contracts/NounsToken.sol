@@ -156,7 +156,7 @@ contract NounsToken is INounsToken, Ownable, ERC721Checkpointable {
     /**
      * @notice Burn a noun.
      */
-    function burn(uint256 nounId) public override onlyMinter {
+    function burn(uint256 nounId) public override {
         _burn(nounId);
         emit NounBurned(nounId);
     }

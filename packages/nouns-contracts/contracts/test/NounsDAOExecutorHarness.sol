@@ -9,7 +9,11 @@ interface Administered {
 }
 
 contract NounsDAOExecutorHarness is NounsDAOExecutor {
-    constructor(address admin_, uint256 delay_) NounsDAOExecutor(admin_, delay_) {}
+    constructor(
+        address nouns_,
+        address admin_,
+        uint256 delay_
+    ) NounsDAOExecutor(nouns_, admin_, delay_) {}
 
     function harnessSetPendingAdmin(address pendingAdmin_) public {
         pendingAdmin = pendingAdmin_;
@@ -21,7 +25,11 @@ contract NounsDAOExecutorHarness is NounsDAOExecutor {
 }
 
 contract NounsDAOExecutorTest is NounsDAOExecutor {
-    constructor(address admin_, uint256 delay_) NounsDAOExecutor(admin_, 2 days) {
+    constructor(
+        address nouns_,
+        address admin_,
+        uint256 delay_
+    ) NounsDAOExecutor(nouns_, admin_, 2 days) {
         delay = delay_;
     }
 

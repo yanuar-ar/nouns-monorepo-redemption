@@ -252,4 +252,36 @@ interface NounsTokenLike {
     function getPriorVotes(address account, uint256 blockNumber) external view returns (uint96);
 
     function totalSupply() external view returns (uint96);
+
+    function burn(uint256 tokenId) external;
+
+    function ownerOf(uint256 tokenId) external returns (address);
+}
+
+interface INounsDAOLogicV1 {
+    enum ProposalState {
+        Pending,
+        Active,
+        Canceled,
+        Defeated,
+        Succeeded,
+        Queued,
+        Expired,
+        Executed,
+        Vetoed
+    }
+
+    function proposalCount() external view returns (uint256);
+
+    function state(uint256 proposalId) external view returns (ProposalState);
+
+    function getActions(uint256 proposalId)
+        external
+        view
+        returns (
+            address[] memory targets,
+            uint256[] memory values,
+            string[] memory signatures,
+            bytes[] memory calldatas
+        );
 }

@@ -30,7 +30,7 @@ task('deploy', 'Deploys NFTDescriptor, NounsDescriptor, NounsSeeder, and NounsTo
   .addOptionalParam(
     'auctionTimeBuffer',
     'The auction time buffer (seconds)',
-    5 * 60 /* 5 minutes */,
+    1 * 60 /* 1 minutes */,
     types.int,
   )
   .addOptionalParam(
@@ -48,7 +48,7 @@ task('deploy', 'Deploys NFTDescriptor, NounsDescriptor, NounsSeeder, and NounsTo
   .addOptionalParam(
     'auctionDuration',
     'The auction duration (seconds)',
-    60 * 60 * 24 /* 24 hours */,
+    60 * 10 /* 10 minutes */,
     types.int,
   )
   .addOptionalParam(
@@ -174,7 +174,11 @@ task('deploy', 'Deploys NFTDescriptor, NounsDescriptor, NounsSeeder, and NounsTo
         },
       },
       NounsDAOExecutor: {
-        args: [expectedNounsDAOProxyAddress, args.timelockDelay],
+        args: [
+          () => deployment.NounsToken.address,
+          expectedNounsDAOProxyAddress,
+          args.timelockDelay,
+        ],
       },
       NounsDAOLogicV1: {
         waitForConfirmation: true,

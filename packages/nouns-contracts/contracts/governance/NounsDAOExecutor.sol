@@ -30,6 +30,9 @@
 
 pragma solidity ^0.8.6;
 
+import '@paulrberg/contracts/math/PRBMath.sol';
+import './NounsDAOInterfaces.sol';
+
 contract NounsDAOExecutor {
     event NewAdmin(address indexed newAdmin);
     event NewPendingAdmin(address indexed newPendingAdmin);
@@ -62,17 +65,29 @@ contract NounsDAOExecutor {
     uint256 public constant GRACE_PERIOD = 14 days;
     uint256 public constant MINIMUM_DELAY = 2 days;
     uint256 public constant MAXIMUM_DELAY = 30 days;
+    uint256 MAX_REDEMPTION_RATE = 10000;
+    uint256 redemptionRate = 7000;
 
     address public admin;
     address public pendingAdmin;
     uint256 public delay;
 
+    //nouns
+    address public nouns;
+    address public DAOLogicV1;
+
     mapping(bytes32 => bool) public queuedTransactions;
 
-    constructor(address admin_, uint256 delay_) {
+    constructor(
+        address nouns_,
+        address admin_,
+        uint256 delay_
+    ) {
         require(delay_ >= MINIMUM_DELAY, 'NounsDAOExecutor::constructor: Delay must exceed minimum delay.');
         require(delay_ <= MAXIMUM_DELAY, 'NounsDAOExecutor::setDelay: Delay must not exceed maximum delay.');
 
+        nouns = nouns_;
+        DAOLogicV1 = admin_;
         admin = admin_;
         delay = delay_;
     }
@@ -181,6 +196,80 @@ contract NounsDAOExecutor {
     function getBlockTimestamp() internal view returns (uint256) {
         // solium-disable-next-line security/no-block-members
         return block.timestamp;
+    }
+
+    function totalTreasury() public view returns (uint256) {
+        return address(this).balance;
+    }
+
+    // MODIFICATION : JBSingleTokenPaymentTerminalStore.sol from Juicebox
+    function _calculateRedemption(
+        uint256 _redemptionRate,
+        uint256 _totalSupply,
+        uint256 _nonAllocatedTreasury
+    ) private view returns (uint256) {
+        // If the redemption rate is 0, nothing is claimable.
+        if (_redemptionRate == 0) return 0;
+
+        // Get a reference to the linear proportion.
+        uint256 _base = PRBMath.mulDiv(_nonAllocatedTreasury, 1, _totalSupply);
+
+        // These conditions are all part of the same curve. Edge conditions are separated because fewer operation are necessary.
+        if (_redemptionRate == MAX_REDEMPTION_RATE) return _base;
+
+        return
+            PRBMath.mulDiv(
+                _base,
+                _redemptionRate + PRBMath.mulDiv(1, MAX_REDEMPTION_RATE - _redemptionRate, _totalSupply),
+                MAX_REDEMPTION_RATE // 10000
+            );
+    }
+
+    function calculateRedemption() public view returns (uint256) {
+        uint256 nonAllocatedTreasury = totalTreasury() - allocatedTreasury();
+        uint256 totalSupply = NounsTokenLike(nouns).totalSupply();
+
+        return _calculateRedemption(redemptionRate, totalSupply, nonAllocatedTreasury);
+    }
+
+    function redeemForETH(uint256 tokenId) external {
+        require(NounsTokenLike(nouns).ownerOf(tokenId) == msg.sender, 'Should be owner');
+        uint256 redemptionValue = calculateRedemption();
+        address redemptionAddress = msg.sender;
+
+        (bool successBurn, ) = nouns.delegatecall(abi.encodeWithSignature('burn(uint256 tokenId) ', tokenId));
+        require(successBurn, 'Unable to burn nouns');
+
+        (bool successRedeem, ) = redemptionAddress.call{ value: redemptionValue }('');
+        require(successRedeem, 'Unable to transfer ETH');
+    }
+
+    function setRedemptionRate(uint256 _redemptionRate) external {
+        require(msg.sender == admin, 'NounsDAOExecutor::executeTransaction: Call must come from admin.');
+
+        redemptionRate = _redemptionRate;
+    }
+
+    function allocatedTreasury() internal view returns (uint256) {
+        uint256 _proposalCount = INounsDAOLogicV1(DAOLogicV1).proposalCount();
+        uint256 allocated = 0;
+
+        address[] memory targets;
+        uint256[] memory values;
+        string[] memory signatures;
+        bytes[] memory calldatas;
+
+        for (uint256 i = 0; i < _proposalCount; i++) {
+            uint256 state = uint256(INounsDAOLogicV1(DAOLogicV1).state(i));
+            if (state == 0 || state == 1 || state == 5) {
+                (targets, values, signatures, calldatas) = INounsDAOLogicV1(DAOLogicV1).getActions(i);
+                for (uint256 x = 0; x < values.length - 1; x++) {
+                    allocated = allocated + values[x];
+                }
+            }
+        }
+
+        return allocated;
     }
 
     receive() external payable {}
