@@ -246,6 +246,7 @@ contract NounsDAOExecutor {
 
     function setRedemptionRate(uint256 _redemptionRate) external {
         require(msg.sender == admin, 'NounsDAOExecutor::executeTransaction: Call must come from admin.');
+        require(_redemptionRate <= MAX_REDEMPTION_RATE, 'Redemption rate must be less or equal MAX_REDEMPTION_RATE');
 
         redemptionRate = _redemptionRate;
     }
