@@ -1,4 +1,10 @@
-# nouns-monorepo
+# nouns-monorepo with Redemption (inpspired by Juicebox Redemption)
+
+This is an experiment of redemption mechanism on Nouns DAO treasury.
+
+Redemption mechanism uses Bonding Curve and formula based on Juicebox Redemption.
+
+You can check in smart contracts: NounsDAOExecutor.
 
 Nouns DAO is a generative avatar art collective run by a group of crypto misfits.
 
