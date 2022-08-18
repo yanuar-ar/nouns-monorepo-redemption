@@ -66,7 +66,7 @@ contract NounsDAOExecutor {
     uint256 public constant MINIMUM_DELAY = 2 days;
     uint256 public constant MAXIMUM_DELAY = 30 days;
     uint256 MAX_REDEMPTION_RATE = 10000;
-    uint256 redemptionRate = 7000;
+    uint256 public redemptionRate = 7000;
 
     address public admin;
     address public pendingAdmin;
@@ -237,8 +237,8 @@ contract NounsDAOExecutor {
         uint256 redemptionValue = calculateRedemption();
         address redemptionAddress = msg.sender;
 
-        (bool successBurn, ) = nouns.delegatecall(abi.encodeWithSignature('burn(uint256 tokenId) ', tokenId));
-        require(successBurn, 'Unable to burn nouns');
+        NounsTokenLike(nouns).transferFrom(msg.sender, address(this), tokenId);
+        NounsTokenLike(nouns).burn(tokenId);
 
         (bool successRedeem, ) = redemptionAddress.call{ value: redemptionValue }('');
         require(successRedeem, 'Unable to transfer ETH');
