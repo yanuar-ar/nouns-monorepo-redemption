@@ -1,4 +1,4 @@
-# nouns-monorepo with Redemption (inpspired by Juicebox Redemption)
+# nouns-monorepo with Redemption (inspired by Juicebox Redemption)
 
 This is an experiment of redemption mechanism on Nouns DAO treasury.
 
