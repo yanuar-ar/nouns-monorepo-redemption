@@ -3,6 +3,7 @@
 pragma solidity ^0.8.6;
 
 import '../governance/NounsDAOExecutor.sol';
+import '../governance/NounsDAOInterfaces.sol';
 
 interface Administered {
     function _acceptAdmin() external returns (uint256);
@@ -10,7 +11,7 @@ interface Administered {
 
 contract NounsDAOExecutorHarness is NounsDAOExecutor {
     constructor(
-        address nouns_,
+        NounsTokenLike nouns_,
         address admin_,
         uint256 delay_
     ) NounsDAOExecutor(nouns_, admin_, delay_) {}
@@ -26,7 +27,7 @@ contract NounsDAOExecutorHarness is NounsDAOExecutor {
 
 contract NounsDAOExecutorTest is NounsDAOExecutor {
     constructor(
-        address nouns_,
+        NounsTokenLike nouns_,
         address admin_,
         uint256 delay_
     ) NounsDAOExecutor(nouns_, admin_, 2 days) {

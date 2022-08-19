@@ -73,13 +73,13 @@ contract NounsDAOExecutor {
     uint256 public delay;
 
     //nouns
-    address public nouns;
-    address public DAOLogicV1;
+    NounsTokenLike public nouns;
+    INounsDAOLogicV1 public DAOLogicV1;
 
     mapping(bytes32 => bool) public queuedTransactions;
 
     constructor(
-        address nouns_,
+        NounsTokenLike nouns_,
         address admin_,
         uint256 delay_
     ) {
@@ -87,7 +87,7 @@ contract NounsDAOExecutor {
         require(delay_ <= MAXIMUM_DELAY, 'NounsDAOExecutor::setDelay: Delay must not exceed maximum delay.');
 
         nouns = nouns_;
-        DAOLogicV1 = admin_;
+        DAOLogicV1 = INounsDAOLogicV1(admin_);
         admin = admin_;
         delay = delay_;
     }
@@ -226,19 +226,16 @@ contract NounsDAOExecutor {
     }
 
     function calculateRedemption() public view returns (uint256) {
-        uint256 nonAllocatedTreasury = totalTreasury() - allocatedTreasury();
-        uint256 totalSupply = NounsTokenLike(nouns).totalSupply();
-
-        return _calculateRedemption(redemptionRate, totalSupply, nonAllocatedTreasury);
+        return _calculateRedemption(redemptionRate, nouns.totalSupply(), nonAllocatedTreasury());
     }
 
     function redeemForETH(uint256 tokenId) external {
-        require(NounsTokenLike(nouns).ownerOf(tokenId) == msg.sender, 'Should be owner');
+        require(nouns.ownerOf(tokenId) == msg.sender, 'Should be owner');
         uint256 redemptionValue = calculateRedemption();
         address redemptionAddress = msg.sender;
 
-        NounsTokenLike(nouns).transferFrom(msg.sender, address(this), tokenId);
-        NounsTokenLike(nouns).burn(tokenId);
+        nouns.transferFrom(msg.sender, address(this), tokenId);
+        nouns.burn(tokenId);
 
         (bool successRedeem, ) = redemptionAddress.call{ value: redemptionValue }('');
         require(successRedeem, 'Unable to transfer ETH');
@@ -251,8 +248,12 @@ contract NounsDAOExecutor {
         redemptionRate = _redemptionRate;
     }
 
-    function allocatedTreasury() internal view returns (uint256) {
-        uint256 _proposalCount = INounsDAOLogicV1(DAOLogicV1).proposalCount();
+    function nonAllocatedTreasury() public view returns (uint256) {
+        return totalTreasury() - allocatedTreasury();
+    }
+
+    function allocatedTreasury() public view returns (uint256) {
+        uint256 _proposalCount = DAOLogicV1.proposalCount();
         uint256 allocated = 0;
 
         address[] memory targets;
@@ -261,9 +262,9 @@ contract NounsDAOExecutor {
         bytes[] memory calldatas;
 
         for (uint256 i = 0; i < _proposalCount; i++) {
-            uint256 state = uint256(INounsDAOLogicV1(DAOLogicV1).state(i));
+            uint256 state = uint256(DAOLogicV1.state(i));
             if (state == 0 || state == 1 || state == 5) {
-                (targets, values, signatures, calldatas) = INounsDAOLogicV1(DAOLogicV1).getActions(i);
+                (targets, values, signatures, calldatas) = DAOLogicV1.getActions(i);
                 for (uint256 x = 0; x < values.length - 1; x++) {
                     allocated = allocated + values[x];
                 }
